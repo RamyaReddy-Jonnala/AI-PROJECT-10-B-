@@ -1,0 +1,69 @@
+import random
+NUM_ITEMS = 3
+BIN_CAPACITY = 5
+POPULATION_SIZE = 4
+GENERATIONS = 5
+MUTATION_RATE = 0.1
+CROSSOVER_RATE = 0.8
+ITEM_SIZES = [2, 3, 1]
+def create_chromosome():
+    chromosome = []
+    for item in range(NUM_ITEMS):
+        bin_index = random.randint(0, NUM_ITEMS - 1)
+        while len(chromosome) <= bin_index:
+            chromosome.append([])
+        chromosome[bin_index].append(item)
+    return chromosome
+def fitness(chromosome):
+    num_bins = len(chromosome)
+    penalty = 0
+    for bin in chromosome:
+        bin_size = sum(ITEM_SIZES[item] for item in bin)
+        if bin_size > BIN_CAPACITY:
+            penalty += bin_size - BIN_CAPACITY
+    return 1 / (num_bins + penalty)
+def crossover(parent1, parent2):
+    if random.random() < CROSSOVER_RATE:
+        point = random.randint(0, NUM_ITEMS - 1)
+        child1 = parent1[:point] + parent2[point:]
+        child2 = parent2[:point] + parent1[point:]
+        return child1, child2
+    return parent1, parent2
+def mutate(chromosome):
+    if random.random() < MUTATION_RATE:
+        if len(chromosome) >= 2:
+            bin1 = random.randint(0, len(chromosome) - 1)
+            bin2 = random.randint(0, len(chromosome) - 1)
+            while bin1 == bin2 or not chromosome[bin1] or not chromosome[bin2]:
+                bin1 = random.randint(0, len(chromosome) - 1)
+                bin2 = random.randint(0, len(chromosome) - 1)
+            item1 = random.choice(chromosome[bin1])
+            item2 = random.choice(chromosome[bin2])
+            chromosome[bin1].remove(item1)
+            chromosome[bin2].remove(item2)
+            chromosome[bin1].append(item2)
+            chromosome[bin2].append(item1)
+    return chromosome
+def select_population(population, fitness_scores):
+    total_fitness = sum(fitness_scores)
+    probabilities = [score / total_fitness for score in fitness_scores]
+    return random.choices(population, weights=probabilities, k=POPULATION_SIZE)
+def genetic_algorithm():
+    population = [create_chromosome() for _ in range(POPULATION_SIZE)]
+    for generation in range(GENERATIONS):
+        fitness_scores = [fitness(chromosome) for chromosome in population]
+        selected_population = select_population(population, fitness_scores)
+        new_population = []
+        for i in range(0, POPULATION_SIZE, 2):
+            parent1, parent2 = selected_population[i], selected_population[i + 1]
+            child1, child2 = crossover(parent1, parent2)
+            new_population.extend([mutate(child1), mutate(child2)])
+        population = new_population
+        best_fitness = max(fitness_scores)
+        print(f"Generation {generation + 1}: Best Fitness = {best_fitness}")
+    best_index = fitness_scores.index(max(fitness_scores))
+    return population[best_index]
+best_packing = genetic_algorithm()
+print("Best Packing:")
+for bin in best_packing:
+    print(bin)
